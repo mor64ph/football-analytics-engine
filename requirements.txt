@@ -1,0 +1,42 @@
+# Runtime dependencies for the API. Deliberately minimal.
+#
+# This file is what a host installs, and it is the constraint that matters:
+# Render's free tier gives 512MB, and the API already sits at ~270MB once
+# pandas and xgboost are imported. The previous version of this file both
+# omitted FastAPI - so it could not actually serve anything - and pulled in
+# delta-spark, which installs PySpark and a JVM runtime for roughly 300MB that
+# nothing at request time uses.
+#
+# Anything needed only to build models or explore data belongs in
+# requirements-dev.txt, not here.
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+python-dotenv==1.0.1
+requests==2.32.3
+
+# These versions are NOT arbitrary - they must match the environment that
+# created data/models/*.pkl, because a pickle carries references to the classes
+# and modules of the library that wrote it.
+#
+# numpy 2.x renamed numpy.core to numpy._core. A pickle written under numpy 2
+# therefore raises ModuleNotFoundError under numpy 1, and the failure happens at
+# model load rather than at install: the build goes green and the API serves
+# nothing. Same hazard across the scikit-learn and xgboost major versions.
+#
+# If you retrain the models on different library versions, update these pins to
+# match, or the deployed API will break while local development stays fine.
+pandas==2.3.3
+numpy==2.4.6
+scipy==1.18.1
+scikit-learn==1.9.0
+# xgboost-cpu, not xgboost: the GPU build depends on nvidia-nccl, a 252MB CUDA
+# library that a CPU-only web service downloads, stores and never calls. Same
+# package name once installed, same pickle format - just without the payload.
+xgboost-cpu==3.4.1
+
+# Optional. Only imported when the DATABRICKS_* variables are set, which they
+# are not in a hosted deployment - the API reads the committed Gold CSVs there.
+# Uncomment only if you point a deployment at a live warehouse.
+# databricks-sql-connector==3.4.0

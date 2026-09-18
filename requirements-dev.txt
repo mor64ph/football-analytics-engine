@@ -1,0 +1,15 @@
+# Everything needed to build models, fetch data and run experiments locally.
+# Deliberately NOT installed on the host - see requirements.txt for why.
+-r requirements.txt
+
+# Databricks access for the value pipeline
+databricks-sql-connector==3.4.0
+databricks-sdk==0.31.0
+
+# Experiment tracking and plotting
+mlflow==2.15.1
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# Parquet / Delta interchange
+pyarrow==17.0.0

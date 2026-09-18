@@ -1,0 +1,73 @@
+name: Daily refresh
+
+# WHY THE SCHEDULER LIVES HERE RATHER THAN ON THE HOST
+#
+# Render's free tier sleeps when idle and its filesystem is ephemeral, so a
+# background thread inside the API would stop when nothing was being served and
+# lose whatever it had written. GitHub Actions has neither problem: it runs on
+# a timer whether or not anyone visits, and it can commit its output back into
+# the repository, which is what makes the result survive.
+#
+# Committing data back also means Render needs no write access to anything. It
+# redeploys on push and serves the refreshed files read-only.
+
+on:
+  schedule:
+    # 04:20 UTC. Deliberately not on the hour - GitHub queues scheduled jobs
+    # heavily at :00 and they can be delayed by many minutes or dropped.
+    - cron: "20 4 * * *"
+  workflow_dispatch:        # so it can be triggered by hand from the Actions tab
+
+permissions:
+  contents: write           # required to push the refreshed data back
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh match model
+        env:
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: python src/refresh_match_model.py
+
+      - name: Recompute dynamic player values
+        env:
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: python src/build_local_dynamic_values.py
+
+      - name: Score and log predictions
+        env:
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: python src/track_predictions.py
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A data/
+          # Nothing to commit is a normal outcome on a day with no fixtures,
+          # so it must not fail the run.
+          if git diff --staged --quiet; then
+            echo "No data changes."
+          else
+            # Deliberately NOT tagged [skip ci]. This workflow only fires on a
+            # schedule or a manual dispatch, never on push, so there is no loop
+            # to guard against - but Render and Vercel both honour that tag and
+            # would skip the redeploy. The commit would land and the live API
+            # would carry on serving whatever data it was last deployed with,
+            # which is the exact staleness this job exists to prevent.
+            git commit -m "chore: daily data refresh"
+            git push
+          fi

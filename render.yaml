@@ -1,0 +1,39 @@
+# Render blueprint for the API. Free tier.
+#
+# TWO THINGS TO KNOW ABOUT THE FREE PLAN
+#
+# 1. It sleeps after 15 minutes with no traffic, and the next request waits
+#    ~50s for a cold boot. The frontend has to show that as "waking up"
+#    rather than as an error, or the app looks broken to the first visitor.
+#
+# 2. The filesystem is ephemeral. Anything written at runtime is gone on the
+#    next deploy or wake. That is why nothing here writes data: the Gold CSVs
+#    and model pickles are committed to the repo, and the scheduled refresh
+#    runs in GitHub Actions, which commits its output back. Render only ever
+#    reads.
+#
+# DATABRICKS_* variables are deliberately absent. Without them the API serves
+# the committed CSVs, which is what we want in production - a free-tier
+# warehouse that deactivates itself is not something to put in a request path.
+
+services:
+  - type: web
+    name: scoutiq-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    # $PORT is assigned by Render; binding to a fixed port fails health checks.
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      # One worker. Two would double the ~270MB pandas/xgboost footprint and
+      # exceed the 512MB the free plan allows.
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: ALLOWED_ORIGINS
+        sync: false      # set to the Vercel URL once the frontend is deployed
+      - key: FOOTBALL_DATA_API_KEY
+        sync: false      # needed by /api/match/fixtures

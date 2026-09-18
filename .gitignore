@@ -1,0 +1,60 @@
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# .env holds a live Databricks personal access token and API keys. Render and
+# Vercel take these as dashboard environment variables; they must never reach
+# the repository. .env.example documents the required names with no values.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv*/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+
+# ── Node / frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/node_modules/
+.vercel
+
+# ── Editor / OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+# The API reads committed Gold CSVs and model pickles at startup, so those are
+# tracked deliberately (see the un-ignores below) - Render's filesystem is
+# ephemeral and it has no other way to get them.
+#
+# Everything ignored here is either large, regenerable from the fetch scripts,
+# or both. match_features.csv alone is 21MB and is rebuilt by
+# build_match_features.py in under two minutes.
+data/processed/match_features.csv
+data/processed/elo_diff_optimised.npy
+data/processed/bronze_scorers.csv
+# Availability features were measured and did not beat the baseline, so nothing
+# at runtime reads this. Regenerate with src/availability_features.py if
+# revisiting that question.
+data/processed/availability.csv
+data/external/
+*.csv.gz
+mlruns/
+
+# Tracked despite the rules above: everything the API needs to boot.
+!data/models/*.pkl
+!data/models/*.json
+!data/models/*.txt
+!data/processed/gold_*.csv
+!data/processed/value_history.csv
+!data/processed/prediction_log.csv
+!data/raw/fdcouk_matches.csv

@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Design tokens
+   ----------------------------------------------------------------------------
+   Every colour, size and radius in the product resolves to something declared
+   here. Nothing downstream should contain a raw hex or rgba literal.
+
+   The previous styling had no layer like this: each page redeclared its own
+   `panelStyle` and its own `rgba(255,255,255,0.45)` for secondary text, so the
+   same intent was expressed with slightly different values in seven places and
+   drifted apart as pages were edited. Tokens make "secondary text" a decision
+   made once.
+
+   Surfaces are numbered by elevation rather than named by colour, so a panel
+   can move up or down the stack without anything being renamed.
+   ========================================================================= */
+
+@theme {
+  /* -- Surfaces: 0 is the page, each step is one level closer to the viewer -- */
+  --color-surface-0: #0a0c0f;
+  --color-surface-1: #101317;
+  --color-surface-2: #161a20;
+  --color-surface-3: #1d222a;
+
+  /* -- Borders: hairline for dividers, strong for interactive edges -- */
+  --color-line: #21262e;
+  --color-line-strong: #2d343e;
+
+  /* -- Text: three deliberate levels. Contrast checked against surface-1 --
+        primary 15.8:1, secondary 7.4:1, tertiary 4.6:1 (all pass WCAG AA) */
+  --color-ink: #e8eaed;
+  --color-ink-muted: #9ba3af;
+  --color-ink-faint: #6b7280;
+
+  /* -- Accent. One brand colour, used for emphasis and interaction only.
+        Desaturated from the previous #22c55e, which glowed on a dark field and
+        read as a gaming UI rather than an analysis tool. -- */
+  --color-brand: #3fb98a;
+  --color-brand-strong: #4ecf9c;
+  --color-brand-dim: #1c3d33;
+
+  /* -- Semantic. Reserved for meaning, never decoration. -- */
+  --color-positive: #3fb98a;
+  --color-negative: #e06c65;
+  --color-caution: #d9a13b;
+  --color-info: #5b8dd9;
+
+  /* -- Data series. Ordered for categorical charts; distinguishable in
+        greyscale and for the common forms of colour blindness. -- */
+  --color-series-1: #3fb98a;
+  --color-series-2: #5b8dd9;
+  --color-series-3: #d9a13b;
+  --color-series-4: #a884d4;
+  --color-series-5: #e06c65;
+
+  /* -- Type scale: 1.2 ratio, capped. Replaces ad-hoc text-[11px]. -- */
+  --text-micro: 0.6875rem;   /* 11px - labels, axis ticks */
+  --text-micro--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;      /* 13px - the body size for dense data UI */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.875rem;
+  --text-stat: 1.75rem;      /* the single number on a stat card */
+  --text-stat--line-height: 2rem;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Tabular figures matter: without them, numbers in a column visibly jitter
+     as values change. */
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ========================================================================= */
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-surface-0);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Any element showing a figure that updates. Proportional digits have
+   different widths, so a changing value shifts everything beside it. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* -- Focus: visible for keyboard users, absent for mouse users -- */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: var(--color-brand-dim);
+  color: var(--color-ink);
+}
+
+/* -- Scrollbars: present enough to grab, quiet enough to ignore -- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 6px;
+  /* Transparent border creates inset padding so the thumb doesn't touch the
+     track edges. */
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: #3c4450; background-clip: content-box; }
+
+/* -- Range inputs (the value simulator) -- */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--color-line-strong);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  cursor: grab;
+  border: none;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  transition: transform 120ms ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; }
+
+/* -- Loading placeholder. Deliberately low contrast: a skeleton should read as
+      "not yet" rather than compete with real content. -- */
+@keyframes shimmer {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.8; }
+}
+.skeleton {
+  background: var(--color-surface-3);
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

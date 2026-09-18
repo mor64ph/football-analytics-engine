@@ -1,0 +1,14 @@
+feature,importance
+club_prestige_eur,0.24898744
+international_caps,0.14226782
+league_difficulty,0.12649892
+age_factor,0.12337058
+age,0.119945355
+minutes_played,0.1021073
+gc_p90,0.061868906
+assists_p90,0.03907933
+goals_p90,0.03587436
+pos_ATT,0.0
+pos_DEF,0.0
+pos_GK,0.0
+pos_MID,0.0
