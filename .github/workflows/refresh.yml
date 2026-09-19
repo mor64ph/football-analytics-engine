@@ -37,6 +37,31 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # The value model trains on a Transfermarkt mirror that refreshes about
+      # once a week. This step was missing entirely, so tm_training_data.csv
+      # stayed frozen at whatever was committed on day one and every
+      # "overvalued" verdict was being measured against stale prices.
+      #
+      # Allowed to fail. The committed CSV is a working fallback, and a slow or
+      # broken 190MB download must not take the match-model refresh down with
+      # it. data/external/ is gitignored, so CI always fetches fresh and the
+      # cache guard in fetch_tm_archive.py never applies here.
+      - name: Refresh Transfermarkt market values
+        continue-on-error: true
+        run: |
+          python src/fetch_tm_archive.py
+          python src/prepare_tm_data.py --archive-dir data/external/archive
+
+      # Rebuilds gold_current_season_scores.csv, which drives Overview and
+      # Value Movers. Also absent from this workflow before now - which is why
+      # the "current season" sat on 2024-25 while the site claimed to refresh
+      # daily. The season is derived from the date in football_api.py rather
+      # than hardcoded, so this rolls over on its own.
+      - name: Retrain value model and score current season
+        env:
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: python notebooks/04_local_pipeline.py
+
       - name: Refresh match model
         env:
           FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}

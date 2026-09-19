@@ -19,7 +19,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from football_api import FootballDataClient, COMPETITIONS, SEASONS
+from football_api import FootballDataClient, COMPETITIONS, scoring_season
 from feature_engineering import build_features, FEATURE_COLS
 from model import (
     train_by_position, predict_by_position,
@@ -79,11 +79,12 @@ def run(api_key: str, seasons: list[int] = None, competitions: list[str] = None)
 
     # ── 5. Pull current-season data from football-data.org ─────────────────────
     print("Step 5: Pulling current players from football-data.org API...")
-    seasons      = seasons      or [SEASONS[-1]]
+    seasons      = seasons      or [scoring_season()]
     competitions = competitions or list(COMPETITIONS.keys())
 
     client = FootballDataClient(api_key=api_key)
     all_scorers = []
+    failures = []
     for comp in competitions:
         for season in seasons:
             print(f"  {comp} {season}...", end=" ", flush=True)
@@ -93,6 +94,19 @@ def run(api_key: str, seasons: list[int] = None, competitions: list[str] = None)
                 print(f"{len(rows)} players")
             except Exception as e:
                 print(f"FAILED: {e}")
+                failures.append(f"{comp} {season}: {e}")
+
+    # A transient API error here used to be printed and then ignored, leaving a
+    # dataset silently missing an entire league - one run dropped every
+    # Bundesliga player and still wrote its output. Now that this runs in CI and
+    # commits what it produces, a partial file would ship to the live site.
+    # Fail instead; the previous day's committed data stays up and tomorrow's
+    # run recovers.
+    if failures:
+        raise RuntimeError(
+            "Scorer fetch failed for:\n  " + "\n  ".join(failures)
+            + "\nRefusing to write a partial dataset."
+        )
 
     api_df = pd.DataFrame(all_scorers)
     api_df.to_csv(os.path.join(PROCESSED, "bronze_scorers.csv"), index=False)

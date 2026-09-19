@@ -71,10 +71,25 @@ POSITION_MAP = {
     "ATT": "ATT",
 }
 
+# League strength, normalised to Serie A = 1.00 (the previous anchor, kept so
+# the scale stays comparable).
+#
+# Only PL/PD/SA were mapped before, so Bundesliga and Ligue 1 fell through the
+# .fillna(1.0) below and were silently priced as though they were Serie A —
+# roughly a third of the player base carrying an invented coefficient on what
+# feature importance ranks as the model's third-heaviest input. The three
+# values that were present were guesses.
+#
+# Source is UEFA's five-year country coefficients (2025-26 edition), which
+# measure how clubs from each country actually perform in European competition.
+# Deliberately NOT derived from median market value per league: that is the
+# training target, and feeding it back in as a feature would be leakage.
 LEAGUE_DIFFICULTY = {
-    "PL": 1.10,
-    "PD": 1.05,
-    "SA": 1.00,
+    "PL":  1.155,   # England  104.303
+    "SA":  1.000,   # Italy     90.284  (anchor)
+    "PD":  0.991,   # Spain     89.489
+    "BL1": 0.959,   # Germany   86.624
+    "FL1": 0.740,   # France    66.831
 }
 
 FEATURE_COLS = [

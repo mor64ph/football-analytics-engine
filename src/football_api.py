@@ -10,6 +10,7 @@ import requests
 import urllib3
 from typing import Optional
 import os
+from datetime import date
 from dotenv import load_dotenv
 
 # SSL verification is disabled for local development environments with a
@@ -31,8 +32,39 @@ COMPETITIONS = {
     "FL1": "Ligue 1",
 }
 
-# Seasons available on free tier (last few full seasons plus the current one).
-SEASONS = [2021, 2022, 2023, 2024]
+# ── Seasons ───────────────────────────────────────────────────────────────────
+# football-data.org labels a season by the calendar year it starts in, so
+# season=2026 means the 2026-27 campaign.
+#
+# This was a hardcoded list ending at 2024. Because the scoring pipeline takes
+# SEASONS[-1], the whole "current season" half of the product was pinned to
+# 2024-25 and could never advance on its own - the dashboard was still listing
+# Wirtz at Leverkusen more than a year after he joined Liverpool. Derive it from
+# the date so it rolls over by itself.
+FIRST_SEASON = 2021
+
+# Months in which the new campaign is too young to value players from. A few
+# matchdays in, per-90 rates rest on ~300 minutes and the valuations they
+# produce swing wildly week to week, so keep scoring the completed season until
+# roughly a quarter of the new one has been played. Output always carries the
+# season it actually used; nothing downstream should assume.
+EARLY_SEASON_MONTHS = (7, 8, 9, 10)
+
+
+def current_season(today: Optional[date] = None) -> int:
+    """Season label for the campaign in progress. July is the changeover month."""
+    d = today or date.today()
+    return d.year if d.month >= 7 else d.year - 1
+
+
+def scoring_season(today: Optional[date] = None) -> int:
+    """Season the value model should score. See EARLY_SEASON_MONTHS."""
+    d = today or date.today()
+    season = current_season(d)
+    return season - 1 if d.month in EARLY_SEASON_MONTHS else season
+
+
+SEASONS = list(range(FIRST_SEASON, current_season() + 1))
 
 
 class FootballDataClient:

@@ -123,14 +123,14 @@ print(f"  Caps lookup:     {len(caps_lk):,} rows")
 # COMMAND ----------
 
 # ── 4. Pull fresh data from football-data.org ─────────────────────────────────
-from football_api import FootballDataClient, COMPETITIONS, SEASONS
+from football_api import FootballDataClient, COMPETITIONS, scoring_season
 
 print(f"Pulling player stats from API (key present: {bool(API_KEY)})...")
 client      = FootballDataClient(api_key=API_KEY or None)
 all_scorers = []
 
 for comp in COMPETITIONS:
-    for season in [SEASONS[-1]]:
+    for season in [scoring_season()]:
         print(f"  {comp} {season}...", end=" ", flush=True)
         try:
             rows = client.get_scorers(competition=comp, season=season, limit=100)
